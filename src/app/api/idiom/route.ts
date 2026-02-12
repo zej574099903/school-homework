@@ -19,8 +19,8 @@ export async function POST(request: Request) {
             return NextResponse.json(MOCK_RESPONSE);
         }
 
-        const { history, lastIdiom, type = "answer" } = await request.json();
-        // type: "answer" (user inputs idiom) or "hint" (user asks for hint)
+        const { history, lastIdiom, type = "user" } = await request.json();
+        // type: "user" (user inputs idiom), "hint" (asks for hint), or "answer" (asks for direct answer)
 
         const prevIdiom = history.length > 0 ? history[history.length - 1] : null;
 
@@ -42,6 +42,23 @@ export async function POST(request: Request) {
                 "pinyin": string, // 拼音
             }`;
             userPrompt = `喵大师，我接不上 "${prevIdiom}" 了，给个提示吧！`;
+        } else if (type === "answer") {
+            // Direct answer request
+            systemPrompt = `你是一个可爱的"成语大师喵" 🐱。用户接不上成语了，请你直接给他答案，然后继续游戏。
+            目前的成语是：${prevIdiom}
+            
+            你需要：
+            1. 给出一个接得上的**常见**、**简单**成语（适合二年级）
+            2. 然后你再接一个成语（也是常见简单的）
+            
+            返回 JSON 格式：
+            {
+                "answer": string, // 帮用户接的成语
+                "nextIdiom": string, // 你接的下一个成语
+                "pinyin": string, // 你接的成语的拼音
+                "meaning": string // 你接的成语的释义
+            }`;
+            userPrompt = `喵大师，我真的接不上 "${prevIdiom}" 了，直接告诉我答案吧！`;
         } else {
             systemPrompt = `你是一个可爱的"成语大师喵" 🐱，正在和二年级小学生玩成语接龙。
             

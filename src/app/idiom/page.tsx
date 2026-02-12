@@ -45,7 +45,7 @@ export default function IdiomPage() {
             const res = await axios.post("/api/idiom", {
                 history: history,
                 lastIdiom: userIdiom,
-                type: "answer"
+                type: "user"
             });
 
             const data = res.data;
@@ -81,7 +81,7 @@ export default function IdiomPage() {
         try {
             const res = await axios.post("/api/idiom", {
                 history: history,
-                lastIdiom: "", // Not needed for hint
+                lastIdiom: "",
                 type: "hint"
             });
 
@@ -89,12 +89,52 @@ export default function IdiomPage() {
             if (data.hint) {
                 setMessages(prev => [...prev, {
                     role: "system" as const,
-                    content: `💡 悄悄告诉你: ${data.hint} (${data.firstChar}...)`,
+                    content: `💡 提示: ${data.hint} (${data.firstChar}...)`,
                     isHint: true
                 }]);
             }
         } catch (error) {
             console.error("Hint error", error);
+        } finally {
+            setHintLoading(false);
+        }
+    };
+
+    const handleAnswer = async () => {
+        if (loading || hintLoading || history.length === 0) return;
+
+        setHintLoading(true);
+        try {
+            const res = await axios.post("/api/idiom", {
+                history: history,
+                lastIdiom: "",
+                type: "answer"
+            });
+
+            const data = res.data;
+            if (data.answer) {
+                // Add answer as user message
+                setMessages(prev => [...prev, {
+                    role: "user" as const,
+                    content: data.answer
+                }]);
+                setHistory(prev => [...prev, data.answer]);
+
+                // Then AI continues
+                if (data.nextIdiom) {
+                    setTimeout(() => {
+                        setMessages(prev => [...prev, {
+                            role: "ai" as const,
+                            content: data.nextIdiom,
+                            pinyin: data.pinyin,
+                            meaning: data.meaning
+                        }]);
+                        setHistory(prev => [...prev, data.nextIdiom]);
+                    }, 500);
+                }
+            }
+        } catch (error) {
+            console.error("Answer error", error);
         } finally {
             setHintLoading(false);
         }
@@ -107,25 +147,22 @@ export default function IdiomPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-green-50 to-emerald-100 flex flex-col p-4 md:p-6 max-w-3xl mx-auto">
-            {/* Header */}
-            <header className="flex items-center justify-between mb-4 sticky top-0 z-10 py-2">
+        <div className="h-screen flex flex-col bg-gradient-to-b from-green-50 to-emerald-100 overflow-hidden">
+            {/* Fixed Header */}
+            <header className="flex-shrink-0 flex items-center justify-between p-4 md:px-6 bg-gradient-to-b from-green-50 to-emerald-100 border-b border-emerald-100">
                 <Link href="/" className="bg-white/80 backdrop-blur-md p-2.5 rounded-full shadow-sm border border-emerald-100 text-emerald-600 hover:bg-emerald-50 active:scale-90 transition-all">
                     <ArrowLeft className="w-5 h-5" />
                 </Link>
                 <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md px-4 py-1.5 rounded-full shadow-sm border border-emerald-100 font-bold text-emerald-700">
                     <BookOpen className="w-4 h-4" />
-                    <span>成语接龙排位赛</span>
+                    <span className="text-sm md:text-base">成语接龙排位赛</span>
                 </div>
                 <div className="w-10"></div>
             </header>
 
-            {/* Game Area */}
-            <div className="flex-grow flex flex-col glass-card rounded-3xl overflow-hidden shadow-xl border-emerald-100 bg-white/70 relative">
-                {/* Background Decoration */}
-                <div className="absolute inset-0 pointer-events-none opacity-5 bg-[url('https://api.iconify.design/heroicons:sparkles.svg')] bg-repeat opacity-10"></div>
-
-                <div className="flex-grow p-4 overflow-y-auto space-y-6" ref={scrollRef}>
+            {/* Scrollable Game Area */}
+            <div className="flex-1 overflow-y-auto px-4 md:px-6 pt-4 pb-2 max-w-3xl mx-auto w-full">
+                <div className="space-y-6" ref={scrollRef}>
                     {messages.map((msg, idx) => (
                         <div key={idx} className={cn("flex w-full animate-in fade-in slide-in-from-bottom-4 duration-500", msg.role === "user" ? "justify-end" : "justify-start")}>
 
@@ -137,7 +174,7 @@ export default function IdiomPage() {
                             )}
 
                             <div className={cn(
-                                "max-w-[85%] rounded-2xl p-4 shadow-sm relative",
+                                "max-w-[85%] md:max-w-[75%] rounded-2xl p-4 shadow-sm relative",
                                 msg.role === "user"
                                     ? "bg-emerald-500 text-white rounded-br-none shadow-emerald-200"
                                     : msg.role === "system"
@@ -188,43 +225,48 @@ export default function IdiomPage() {
                         </div>
                     )}
                 </div>
+            </div>
 
-                {/* Input Area */}
-                <div className="p-4 bg-white/80 backdrop-blur-md border-t border-emerald-100 flex flex-col gap-3">
-                    {/* Hint Button (Only show if history exists) */}
-                    {history.length > 0 && (
-                        <div className="flex justify-center -mt-8 mb-2">
-                            <button
-                                onClick={handleHint}
-                                disabled={hintLoading || loading}
-                                className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-4 py-1.5 rounded-full text-sm font-bold shadow-sm flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
-                            >
-                                <Lightbulb className="w-4 h-4" />
-                                {hintLoading ? "喵喵思考中..." : "求助大师喵"}
-                            </button>
-                        </div>
-                    )}
-
-                    <div className="flex items-center gap-2">
-                        <button className="p-3 bg-slate-100 text-slate-400 rounded-xl hover:bg-slate-200 transition-colors" title="语音输入(开发中)">
-                            <Volume2 className="w-6 h-6" />
-                        </button>
-                        <input
-                            type="text"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            placeholder="请输入成语，例如：'一马当先'"
-                            className="flex-grow p-4 rounded-xl bg-slate-50 border-2 border-transparent focus:border-emerald-400 focus:bg-white focus:outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400 text-lg shadow-inner"
-                        />
+            {/* Fixed Bottom Input Area */}
+            <div className="flex-shrink-0 p-4 md:px-6 bg-white border-t border-emerald-100 max-w-3xl mx-auto w-full">
+                {/* Help Buttons (Only show if history exists) */}
+                {history.length > 0 && (
+                    <div className="flex gap-2 justify-center mb-3">
                         <button
-                            onClick={handleSend}
-                            disabled={loading || !input.trim()}
-                            className="p-4 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-200 hover:bg-emerald-600 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all"
+                            onClick={handleHint}
+                            disabled={hintLoading || loading}
+                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-bold shadow-sm flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
                         >
-                            <Send className="w-6 h-6" />
+                            <Lightbulb className="w-3 h-3 md:w-4 md:h-4" />
+                            {hintLoading ? "思考中..." : "给我提示"}
+                        </button>
+                        <button
+                            onClick={handleAnswer}
+                            disabled={hintLoading || loading}
+                            className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 md:px-4 py-1.5 rounded-full text-xs md:text-sm font-bold shadow-sm flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                        >
+                            <Sparkles className="w-3 h-3 md:w-4 md:h-4" />
+                            {hintLoading ? "思考中..." : "直接给答案"}
                         </button>
                     </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder="输入成语，如：一马当先"
+                        className="flex-1 min-w-0 px-3 md:px-4 py-3 md:py-3.5 rounded-xl bg-slate-50 border-2 border-transparent focus:border-emerald-400 focus:bg-white focus:outline-none transition-all font-medium text-slate-700 placeholder:text-slate-400 text-base md:text-lg shadow-inner"
+                    />
+                    <button
+                        onClick={handleSend}
+                        disabled={loading || !input.trim()}
+                        className="flex-shrink-0 p-3 md:p-3.5 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-200 hover:bg-emerald-600 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all"
+                    >
+                        <Send className="w-5 h-5 md:w-6 md:h-6" />
+                    </button>
                 </div>
             </div>
         </div>

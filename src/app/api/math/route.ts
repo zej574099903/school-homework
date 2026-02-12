@@ -87,65 +87,90 @@ export async function POST(request: Request) {
 
         const { difficulty = "easy" } = await request.json().catch(() => ({}));
 
-        // Call DeepSeek API
-        const response = await axios.post(
-            'https://api.deepseek.com/chat/completions',
-            {
-                model: "deepseek-chat",
-                messages: [
-                    {
-                        role: "system",
-                        content: `你是一个充满创意的小学二年级数学老师。请生成 10 道有趣、生动的数学题。
+        // Generate questions in batches with different difficulty levels
+        const difficulties = [
+            { level: "easy", count: 6, desc: "简单" },
+            { level: "medium", count: 3, desc: "中等" },
+            { level: "hard", count: 1, desc: "较难" }
+        ];
+
+        let allProblems: any[] = [];
+        let currentId = 1;
+
+        for (const diff of difficulties) {
+            const response = await axios.post(
+                'https://api.deepseek.com/chat/completions',
+                {
+                    model: "deepseek-chat",
+                    messages: [
+                        {
+                            role: "system",
+                            content: `你是一个充满创意的小学二年级数学老师。请生成 ${diff.count} 道${diff.desc}的数学题。
+
+【难度定义】
+- 简单：10以内加减法，简单加法应用题
+- 中等：20以内加减法，简单乘除法（乘数不超过5）
+- 较难：20以内综合运算，乘除法混合，两步应用题
 
 【题目要求】
-1. 适合二年级学生水平（20以内加减法、简单乘除法）
+1. 适合二年级学生水平
 2. 使用孩子熟悉的场景：动物、玩具、食物、游戏、学校等
 3. 在问题开头加上相关的表情符号（如🐰🎈🐕🍎📚等）
 4. 语言生动有趣，让孩子有代入感
 5. 包含多种题型：加法、减法、乘法、除法、综合应用题
-6. 难度循序渐进
 
 【返回格式】
 必须是纯 JSON 数组，不要包含 markdown 格式和其他文字。
-JSON 结构示例：
+JSON 结构示例（不需要id字段，我会自动添加）：
 [
   {
-    "id": 1,
     "question": "🐰 小兔子拔了8根胡萝卜，吃掉了3根，还剩下几根？",
     "options": ["5根", "6根", "7根", "4根"],
     "answer": "5根",
     "explanation": "8 - 3 = 5，所以还剩下5根胡萝卜。"
   }
 ]`
-                    },
-                    {
-                        role: "user",
-                        content: `请生成 10 道${difficulty === 'hard' ? '较难' : '简单'}的趣味数学题。记住要生动有趣，让孩子喜欢做题！`
+                        },
+                        {
+                            role: "user",
+                            content: `请生成 ${diff.count} 道${diff.desc}难度的趣味数学题。记住要生动有趣，让孩子喜欢做题！`
+                        }
+                    ],
+                    stream: false
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
                     }
-                ],
-                stream: false
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
                 }
+            );
+
+            const content = response.data.choices[0].message.content;
+
+            // Parse JSON from content
+            try {
+                const jsonString = content.replace(/```json\n|\n```/g, '').trim();
+                const problems = JSON.parse(jsonString);
+
+                // Add IDs and append to results
+                problems.forEach((p: any) => {
+                    allProblems.push({
+                        id: currentId++,
+                        ...p
+                    });
+                });
+            } catch (e) {
+                console.error(`Failed to parse ${diff.level} difficulty response:`, content);
             }
-        );
-
-        const content = response.data.choices[0].message.content;
-
-        // Parse JSON from content (handle potential markdown code blocks)
-        let problems = [];
-        try {
-            const jsonString = content.replace(/```json\n|\n```/g, '').trim();
-            problems = JSON.parse(jsonString);
-        } catch (e) {
-            console.error("Failed to parse AI response:", content);
-            return NextResponse.json({ problems: MOCK_PROBLEMS }); // Fallback on parse error
         }
 
-        return NextResponse.json({ problems });
+        // Fallback to mock data if generation failed
+        if (allProblems.length === 0) {
+            return NextResponse.json({ problems: MOCK_PROBLEMS });
+        }
+
+        return NextResponse.json({ problems: allProblems });
 
     } catch (error) {
         console.error("API Error:", error);
