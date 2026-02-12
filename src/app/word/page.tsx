@@ -45,8 +45,8 @@ export default function WordPage() {
                 return exists ? prev : [newCard, ...prev];
             });
 
-            // Auto play audio
-            speak(term + ". " + res.data.sentence);
+            // Auto play audio - Only speak the word
+            speak(term);
         } catch (error) {
             console.error(error);
         } finally {
@@ -112,19 +112,19 @@ export default function WordPage() {
                 {/* Input Area (Always visible) */}
                 <div className="w-full max-w-md relative z-20 mb-8">
                     <div className="relative group">
-                        <div className="absolute inset-0 bg-cyan-200 rounded-full blur-xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute inset-0 bg-cyan-200 rounded-full blur-xl opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                         <input
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleTransform()}
                             placeholder="输入一个单词 (如: Tiger)"
-                            className="w-full pl-6 pr-16 py-4 rounded-full bg-white border-2 border-cyan-100 focus:border-cyan-400 focus:outline-none focus:ring-4 focus:ring-cyan-100/50 transition-all text-xl font-bold shadow-lg placeholder:text-slate-300 placeholder:font-normal text-center"
+                            className="w-full pl-6 pr-16 py-4 rounded-full bg-white border-2 border-cyan-100 focus:border-cyan-400 focus:outline-none focus:ring-4 focus:ring-cyan-100/50 transition-all text-xl font-bold shadow-lg placeholder:text-slate-300 placeholder:font-normal text-center relative z-10"
                         />
                         <button
                             onClick={() => handleTransform()}
                             disabled={loading || !input.trim()}
-                            className="absolute right-2 top-2 bottom-2 aspect-square bg-cyan-500 text-white rounded-full shadow-md hover:bg-cyan-600 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all flex items-center justify-center p-3"
+                            className="absolute right-2 top-2 bottom-2 aspect-square bg-cyan-500 text-white rounded-full shadow-md hover:bg-cyan-600 active:scale-95 disabled:opacity-50 disabled:scale-100 transition-all flex items-center justify-center p-3 z-20"
                         >
                             {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <Sparkles className="w-6 h-6" />}
                         </button>
@@ -175,16 +175,10 @@ export default function WordPage() {
                                         </button>
                                     </p>
 
-                                    <div className="bg-gradient-to-br from-cyan-50 to-white p-6 rounded-3xl border border-cyan-200 relative shadow-inner mb-6">
+                                    <div className="bg-gradient-to-br from-cyan-50 to-white p-6 rounded-3xl border border-cyan-200 relative shadow-inner mb-6 text-center">
                                         <p className="text-xl md:text-2xl font-bold text-slate-700 leading-relaxed">
                                             {result.sentence}
                                         </p>
-                                        <button
-                                            onClick={() => speak(result.sentence)}
-                                            className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-sm text-cyan-400 hover:text-cyan-600 transition-colors hover:scale-110 active:scale-95"
-                                        >
-                                            <Volume2 className={cn("w-5 h-5", isSpeaking && "animate-pulse")} />
-                                        </button>
                                     </div>
 
                                     <div className="text-slate-500 text-sm italic bg-white/50 py-2 px-4 rounded-full inline-block">
