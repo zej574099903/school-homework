@@ -66,35 +66,9 @@ export default function GarbagePage() {
                         className="flex-grow min-w-0 px-3 md:px-4 py-3 bg-transparent outline-none text-base md:text-lg font-bold text-slate-700 placeholder:font-normal placeholder:text-slate-400"
                     />
 
-                    {/* Hidden File Input for Camera */}
-                    <input
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        id="camera-input"
-                        className="hidden"
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                                // Simulate recognition or prepare for upload
-                                setInput("正在识别照片...");
-                                setTimeout(() => {
-                                    // For now, let's pretend it recognized "香蕉皮" to show it works
-                                    setInput("香蕉皮");
-                                    handleCheck();
-                                }, 1500);
-                            }
-                        }}
-                    />
 
-                    <button
-                        type="button"
-                        onClick={() => document.getElementById('camera-input')?.click()}
-                        className="p-2.5 md:p-3 text-orange-400 hover:bg-orange-50 rounded-xl transition-colors flex-shrink-0"
-                        title="拍照识别"
-                    >
-                        <Camera className="w-5 h-5 md:w-6 md:h-6" />
-                    </button>
+
+
                     <button
                         onClick={handleCheck}
                         disabled={loading || !input.trim()}
