@@ -16,6 +16,10 @@ module.exports = {
       },
       animation: {
         'blob': 'blob 7s infinite',
+        'float': 'float 6s ease-in-out infinite',
+        'float-delayed': 'float 6s ease-in-out 3s infinite',
+        'wiggle': 'wiggle 1s ease-in-out infinite',
+        'pop-in': 'pop-in 0.5s cubic-bezier(0.26, 0.53, 0.74, 1.48) forwards',
       },
       keyframes: {
         blob: {
@@ -24,6 +28,18 @@ module.exports = {
           '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
           '100%': { transform: 'translate(0px, 0px) scale(1)' },
         },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-20px)' },
+        },
+        wiggle: {
+          '0%, 100%': { transform: 'rotate(-3deg)' },
+          '50%': { transform: 'rotate(3deg)' },
+        },
+        'pop-in': {
+          '0%': { opacity: '0', transform: 'scale(0.5)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        }
       },
     },
   },

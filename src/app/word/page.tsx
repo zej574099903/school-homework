@@ -36,17 +36,22 @@ export default function WordPage() {
 
         try {
             const res = await axios.post("/api/word", { word: term });
-            const newCard = { ...res.data, word: term };
+            // API now returns { word: "Tiger", sentence: "...", meaning: "...", ... }
+            const newCard = {
+                ...res.data,
+                // Ensure we use the English word from AI for the card if it returned one
+                word: res.data.word || term
+            };
             setResult(newCard);
 
             // Add to collection if not exists
             setCollection(prev => {
-                const exists = prev.some(c => c.word.toLowerCase() === term.toLowerCase());
+                const exists = prev.some(c => c.word.toLowerCase() === newCard.word.toLowerCase());
                 return exists ? prev : [newCard, ...prev];
             });
 
-            // Auto play audio - Only speak the word
-            speak(term);
+            // Auto play audio - Speak the resulting English word
+            speak(newCard.word);
         } catch (error) {
             console.error(error);
         } finally {
@@ -58,14 +63,9 @@ export default function WordPage() {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel(); // Stop previous
             const utterance = new SpeechSynthesisUtterance(text);
-
-            // Try to set a good voice (optional optimization)
-            // const voices = window.speechSynthesis.getVoices();
-            // const zhVoice = voices.find(v => v.lang.includes('zh'));
-            // if (zhVoice) utterance.voice = zhVoice;
-
-            utterance.rate = 0.9; // Slightly slower
-            utterance.pitch = 1.1; // Slightly higher pitch for fun
+            utterance.lang = 'en-US'; // Set to English
+            utterance.rate = 0.9;
+            utterance.pitch = 1.1;
 
             utterance.onstart = () => setIsSpeaking(true);
             utterance.onend = () => setIsSpeaking(false);
@@ -118,7 +118,7 @@ export default function WordPage() {
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={(e) => e.key === "Enter" && handleTransform()}
-                            placeholder="输入一个单词 (如: Tiger)"
+                            placeholder="输入单词或中文 (如: Tiger / 老虎)"
                             className="w-full pl-6 pr-16 py-4 rounded-full bg-white border-2 border-cyan-100 focus:border-cyan-400 focus:outline-none focus:ring-4 focus:ring-cyan-100/50 transition-all text-xl font-bold shadow-lg placeholder:text-slate-300 placeholder:font-normal text-center relative z-10"
                         />
                         <button

@@ -24,25 +24,28 @@ export async function POST(request: Request) {
                 messages: [
                     {
                         role: "system",
-                        content: `你是一个英语单词魔法师 🧙‍♂️，专门帮助二年级小学生记忆单词。
+                        content: `你是一个英语单词魔法师 🧙‍♂️，专门帮助二年级小学生学习单词。
                         
                         【任务】
-                        1. 接收一个英语单词。
-                        2. 生成一个有趣的中文联想句子（中英夹杂），必须包含这个单词和emoji。
-                        3. 提供简单的中文释义。
-                        4. 描述一个生动的场景（用于未来生成图片，现在只展示文字）。
+                        1. 接收一个单词（可能是英语，也可能是中文）。
+                        2. 识别输入语言：
+                           - 如果是英语，返回中文释义。
+                           - 如果是中文，将其翻译为对应的英语单词，并作为主要的 "word" 返回。
+                        3. 生成一个有趣的联想句子（中英夹杂），必须包含这个英语单词和emoji。
+                        4. 描述一个生动的场景。
                         
                         【返回格式 JSON】
                         {
-                            "sentence": string, // 例："Monkey 🐒 喜欢在树上跳来跳去！"
-                            "meaning": string, // 例："猴子"
-                            "emoji": string, // 例："🐒"
-                            "scene": string // 例："茂密的丛林里，一只顽皮的猴子倒挂在树枝上。"
+                            "word": string, // 统一返回对应的英语单词，首字母大写
+                           "sentence": string, // 例："Tiger 🐯 是森林里的百兽之王！"
+                            "meaning": string, // 中文释义，例："老虎"
+                            "emoji": string, // 对应的 emoji，例："🐯"
+                            "scene": string // 场景描述，例："在这片茂密的森林里，一只威武的老虎正迈着优雅的步子在河边喝水。"
                         }`
                     },
                     {
                         role: "user",
-                        content: `单词：${word}`
+                        content: `输入内容：${word}`
                     }
                 ],
                 response_format: { type: "json_object" }
